@@ -12,9 +12,9 @@ public record FlightRequestDTO(
         @JsonProperty("fecha_partida")
         LocalDateTime fechaPartida,
         @JsonProperty("distancia_km")
-        double distaciaKm
+        double distanciaKm
 ) {
     public FlightRequestDTO(Flight flight){
-        this(flight.getAerolinea(), flight.getOrigen(), flight.getDestino(), flight.getFechaPartida(), flight.getDistaciaKm());
+        this(flight.getAerolinea(), flight.getOrigen(), flight.getDestino(), flight.getFechaPartida(), flight.getDistanciaKm());
     }
 }

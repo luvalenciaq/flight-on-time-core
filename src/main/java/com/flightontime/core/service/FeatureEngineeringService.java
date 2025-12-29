@@ -1,6 +1,7 @@
 package com.flightontime.core.service;
 
 import com.flightontime.core.dto.FlightRequestDTO;
+import com.flightontime.core.model.Flight;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -132,18 +133,18 @@ public class FeatureEngineeringService {
      *         [6] ID Destino
      *         [7-11] One-Hot Encoding para Aerolínea
      */
-    public float[] transformar(FlightRequestDTO request) {
+    public float[] transformar(Flight request) {
         // 1. Validaciones de Datos
         // Protegemos al modelo de datos desconocidos que no sabría interpretar.
-        if (!AEROPUERTOS_MAP.containsKey(request.origen())) {
-            throw new IllegalArgumentException("Origen desconocido: " + request.origen());
+        if (!AEROPUERTOS_MAP.containsKey(request.getOrigen())) {
+            throw new IllegalArgumentException("Origen desconocido: " + request.getOrigen());
         }
-        if (!AEROPUERTOS_MAP.containsKey(request.destino())) {
-            throw new IllegalArgumentException("Destino desconocido: " + request.destino());
+        if (!AEROPUERTOS_MAP.containsKey(request.getDestino())) {
+            throw new IllegalArgumentException("Destino desconocido: " + request.getDestino());
         }
 
         // 2. Ingeniería de Características Temporales
-        LocalDateTime fecha = request.fechaPartida();
+        LocalDateTime fecha = request.getFechaPartida();
         float month = fecha.getMonthValue();
         float dayOfWeek = fecha.getDayOfWeek().getValue() - 1; // 0=Lunes
 
@@ -161,17 +162,17 @@ public class FeatureEngineeringService {
 
         vector[0] = month;
         vector[1] = dayOfWeek;
-        vector[2] = (float) request.distanciaKm();
+        vector[2] = (float) request.getDistaciaKm();
         vector[3] = (float) Math.sin(cicloDiario);
         vector[4] = (float) Math.cos(cicloDiario);
-        vector[5] = AEROPUERTOS_MAP.get(request.origen()); // Label Encoding Origen
-        vector[6] = AEROPUERTOS_MAP.get(request.destino()); // Label Encoding Destino
+        vector[5] = AEROPUERTOS_MAP.get(request.getOrigen()); // Label Encoding Origen
+        vector[6] = AEROPUERTOS_MAP.get(request.getDestino()); // Label Encoding Destino
 
         // 4. One-Hot Encoding para Aerolínea
         // Las posiciones 7 a 11 representan las 5 aerolíneas conocidas.
         // Solo una de estas posiciones será 1.0, el resto 0.0.
         int offset = 7;
-        String carrier = request.aerolinea();
+        String carrier = request.getAerolinea();
 
         int index = AEROLINEAS_CONOCIDAS.indexOf(carrier);
         if (index != -1) {

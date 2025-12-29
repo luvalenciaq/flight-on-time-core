@@ -9,12 +9,31 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+/**
+ * Servicio de Ingeniería de Características.
+ * <p>
+ * Este servicio actúa como un puente entre los datos de negocio y el modelo de
+ * IA.
+ * Se encarga de transformar un objeto de solicitud (humano-legible) en un
+ * vector numérico que el modelo ONNX puede entender.
+ * </p>
+ */
 public class FeatureEngineeringService {
-    // 1. LISTA DE AEROLINEAS (Orden crítico para One-Hot)
-    // ["9E", "AA", "AS", "B6", "C5"]
+    /**
+     * Lista de aerolíneas soportadas por el modelo.
+     * <p>
+     * IMPORTANTE: El orden de esta lista es CRÍTICO. Debe coincidir exactamente
+     * con el orden utilizado durante el entrenamiento del modelo para que el
+     * One-Hot Encoding funcione correctamente.
+     * Índices: 0="9E", 1="AA", 2="AS", 3="B6", 4="C5"
+     * </p>
+     */
     private static final List<String> AEROLINEAS_CONOCIDAS = List.of("9E", "AA", "AS", "B6", "C5");
-
-    // 2. MAPA DE AEROPUERTOS (Masivo)
+    /**
+     * Mapa para Label Encoding de aeropuertos.
+     * Asigna un valor numérico único (ID) a cada código IATA de aeropuerto.
+     * Esto evita crear cientos de columnas para cada aeropuerto.
+     */
     private static final Map<String, Float> AEROPUERTOS_MAP = new HashMap<>();
 
     static {
@@ -97,9 +116,25 @@ public class FeatureEngineeringService {
         AEROPUERTOS_MAP.put("TYS", 225.0f); AEROPUERTOS_MAP.put("VLD", 226.0f); AEROPUERTOS_MAP.put("VPS", 227.0f);
         AEROPUERTOS_MAP.put("WRG", 228.0f); AEROPUERTOS_MAP.put("XNA", 229.0f); AEROPUERTOS_MAP.put("YAK", 230.0f);
     }
-
+    /**
+     * Transforma un objeto FlightRequestDTO en un vector de entrada para el modelo
+     * ONNX.
+     *
+     * @param request Datos del vuelo (origen, destino, fecha, aerolínea).
+     * @return float[] Vector de 12 dimensiones preparado para la inferencia.
+     *         Estructura del vector:
+     *         [0] Mes
+     *         [1] Día de la semana
+     *         [2] Distancia
+     *         [3] Seno (Ciclo Diario)
+     *         [4] Coseno (Ciclo Diario)
+     *         [5] ID Origen
+     *         [6] ID Destino
+     *         [7-11] One-Hot Encoding para Aerolínea
+     */
     public float[] transformar(FlightRequestDTO request) {
-        // Validaciones
+        // 1. Validaciones de Datos
+        // Protegemos al modelo de datos desconocidos que no sabría interpretar.
         if (!AEROPUERTOS_MAP.containsKey(request.origen())) {
             throw new IllegalArgumentException("Origen desconocido: " + request.origen());
         }
@@ -107,19 +142,21 @@ public class FeatureEngineeringService {
             throw new IllegalArgumentException("Destino desconocido: " + request.destino());
         }
 
-        // --- Extracción de Fechas ---
+        // 2. Ingeniería de Características Temporales
         LocalDateTime fecha = request.fechaPartida();
         float month = fecha.getMonthValue();
         float dayOfWeek = fecha.getDayOfWeek().getValue() - 1; // 0=Lunes
 
-        // --- Transformación Cíclica ---
+        // Transformación Cíclica del Tiempo:
+        // Convertimos la hora en coordenadas (sin, cos) de un círculo de 24h.
+        // Esto permite que el modelo entienda la continuidad entre 23:59 y 00:00.
         int horas = fecha.getHour();
         int minutos = fecha.getMinute();
         int minutosTotales = horas * 60 + minutos;
-        double cicloDiario = 2 * Math.PI * minutosTotales / 1440.0;
+        double cicloDiario = 2 * Math.PI * minutosTotales / 1440.0; // 1440 minutos en un día
 
-        // --- Construcción del Vector ---
-        // Tamaño total = 7 bases + 5 aerolineas = 12 columnas
+        /// 3. Construcción del Vector Base
+        // El vector tiene tamaño 12: 7 características base + 5 para aerolíneas.
         float[] vector = new float[12];
 
         vector[0] = month;
@@ -127,24 +164,27 @@ public class FeatureEngineeringService {
         vector[2] = (float) request.distanciaKm();
         vector[3] = (float) Math.sin(cicloDiario);
         vector[4] = (float) Math.cos(cicloDiario);
-        vector[5] = AEROPUERTOS_MAP.get(request.origen());
-        vector[6] = AEROPUERTOS_MAP.get(request.destino());
+        vector[5] = AEROPUERTOS_MAP.get(request.origen()); // Label Encoding Origen
+        vector[6] = AEROPUERTOS_MAP.get(request.destino()); // Label Encoding Destino
 
-        // --- One-Hot Encoding ---
-        // El offset es 7 porque hay 7 columnas antes (0 al 6)
+        // 4. One-Hot Encoding para Aerolínea
+        // Las posiciones 7 a 11 representan las 5 aerolíneas conocidas.
+        // Solo una de estas posiciones será 1.0, el resto 0.0.
         int offset = 7;
         String carrier = request.aerolinea();
 
         int index = AEROLINEAS_CONOCIDAS.indexOf(carrier);
         if (index != -1) {
+            // Encontramos la aerolínea, activamos su "bit" correspondiente
             // Ejemplo: Si es "AA" (índice 1), activamos vector[7+1] = vector[8]
             vector[offset + index] = 1.0f;
         } else {
-            // Si la aerolinea no está en la lista de las 5, advertimos en log
+            // Manejo de categorías desconocidas (Other)
             System.out.println("⚠️ Aerolínea no reconocida en entrenamiento: " + carrier);
+            // Todas las posiciones de aerolínea quedan en 0, lo cual es un manejo válido
         }
 
-        // DEBUG: Para ver en consola qué estamos mandando
+        // DEBUG: Imprimimos el vector resultante para verificación manual
         System.out.print("Vector enviado a ONNX: [");
         for (float f : vector) System.out.print(f + ", ");
         System.out.println("]");

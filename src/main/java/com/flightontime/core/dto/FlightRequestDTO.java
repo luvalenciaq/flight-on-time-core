@@ -9,9 +9,7 @@ public record FlightRequestDTO(
         String aerolinea,
         String origen,
         String destino,
-        @JsonProperty("fecha_partida")
         LocalDateTime fechaPartida,
-        @JsonProperty("distancia_km")
         double distanciaKm
 ) {
     public FlightRequestDTO(Flight flight){

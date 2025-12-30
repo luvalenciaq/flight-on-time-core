@@ -15,14 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/internal/predict")
+@RequestMapping("/internal")
 @RequiredArgsConstructor
 public class FlightController {
 
     private final FeatureEngineeringService featureService;
     private final FlightPredictionService predictionService;
 
-    @PostMapping
+    @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
 
         Flight flight = new Flight(); // aqui convierto el dto a mi modelo de dominio -flight-

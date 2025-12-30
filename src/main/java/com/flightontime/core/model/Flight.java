@@ -16,9 +16,9 @@ public class Flight {
     private String origen;
     private String destino;
     private LocalDateTime fechaPartida;
-    private double distaciaKm;
+    private double distanciaKm;
 
     public double getDistaciaKm() {
-        return distaciaKm;
+        return distanciaKm;
     }
 }

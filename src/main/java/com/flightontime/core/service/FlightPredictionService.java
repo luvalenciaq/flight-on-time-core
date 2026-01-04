@@ -90,7 +90,10 @@ public class FlightPredictionService {
             float probRetraso = probs.getOrDefault(1L, 0.0f);
 
             // Umbral de decisión: 0.5 (50%)
-            String estado = (probRetraso > 0.5) ? "Posible Retraso ⚠️" : "Puntual ✅";
+            String estado = (probRetraso >= 0.4) ? "Alto Riesgo de Retraso"
+              : (probRetraso >= 0.3) ? "Riesgo Moderado"
+                    : (probRetraso >= 0.2) ? "Riesgo Bajo"
+                    : "Puntual";
 
             return new PredictionResponseDTO(estado, probRetraso);
         }

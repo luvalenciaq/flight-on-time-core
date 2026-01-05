@@ -2,17 +2,19 @@ package com.flightontime.core.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flightontime.core.model.Flight;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
+@Schema(description = "Datos de entrada para la predicción de puntualidad")
 public record FlightRequestDTO(
-        String aerolinea,
-        String origen,
-        String destino,
+        @Schema(description = "Código de la aerolínea", example = "AA") String aerolinea,
+        @Schema(description = "Código del aeropuerto de origen", example = "JFK") String origen,
+        @Schema(description = "Código del aeropuerto de destino", example = "LAX") String destino,
         @JsonProperty("fecha_partida")
-        LocalDateTime fechaPartida,
+        @Schema(description = "Fecha y hora de partida programada", example = "2026-10-27T10:00:00") LocalDateTime fechaPartida,
         @JsonProperty("distancia_km")
-        double distanciaKm
+        @Schema(description = "Distancia del vuelo en kilómetros", example = "3980.5") double distanciaKm
 ) {
     public FlightRequestDTO(Flight flight){
         this(flight.getAerolinea(), flight.getOrigen(), flight.getDestino(), flight.getFechaPartida(), flight.getDistanciaKm());

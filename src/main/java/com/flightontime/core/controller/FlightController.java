@@ -5,9 +5,14 @@ import com.flightontime.core.dto.PredictionResponseDTO;
 import com.flightontime.core.model.Flight;
 import com.flightontime.core.service.FeatureEngineeringService;
 import com.flightontime.core.service.FlightPredictionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,10 +22,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/internal")
 @RequiredArgsConstructor
+@Tag(name = "Flight Internal Prediction API", description = "API para predicciones de vuelos")
 public class FlightController {
 
     private final FeatureEngineeringService featureService;
     private final FlightPredictionService predictionService;
+
+    @Operation(summary = "Predecir puntualidad", description = "Recibe datos de un vuelo y devuelve la probabilidad de que sea puntual.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Predicción exitosa", content = @Content(mediaType = "application/json", schema = @Schema(implementation = PredictionResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
 
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {

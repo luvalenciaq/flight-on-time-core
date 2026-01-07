@@ -50,20 +50,20 @@ Envía los datos de un vuelo para obtener una predicción.
 
 | Campo | Tipo | Descripción |
 | :--- | :--- | :--- |
-| `aerolinea` | String | Código o nombre de la aerolínea (ej. "AA", "Delta"). |
+| `aerolinea` | String | Código o nombre de la aerolínea (ej. "AA"). |
 | `origen` | String | Código del aeropuerto de origen (ej. "JFK"). |
 | `destino` | String | Código del aeropuerto de destino (ej. "LAX"). |
-| `fecha_partida` | String | Fecha y hora de partida en formato ISO (ej. "2023-12-25T14:30:00"). |
+| `fecha_partida` | String | Fecha y hora de partida en formato ISO (ej. "2026-11-10T14:30:00"). |
 | `distancia_km` | Number | Distancia del vuelo en kilómetros. |
 
 **Ejemplo:**
 
 ```json
 {
-    "aerolinea": "Delta",
-    "origen": "ATL",
-    "destino": "JFK",
-    "fecha_partida": "2023-11-20T08:00:00",
+    "aerolinea": "AA",
+    "origen": "JFK",
+    "destino": "LAX",
+    "fecha_partida": "2026-11-10T14:30:00",
     "distancia_km": 1200.5
 }
 ```
@@ -72,8 +72,8 @@ Envía los datos de un vuelo para obtener una predicción.
 
 ```json
 {
-    "estado": "Puntual ✅",
-    "probabilidad": 0.1234
+    "prevision": "Puntual ✅",
+    "probabilidad": 0.24
 }
 ```
 *   `estado`: Clasificación textual ("Puntual ✅" o "Posible Retraso ⚠️").

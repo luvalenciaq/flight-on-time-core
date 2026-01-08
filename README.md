@@ -34,7 +34,7 @@ Puedes iniciar la aplicación con el comando:
 ./mvnw spring-boot:run
 ```
 
-La aplicación se iniciará generalmente en el puerto `8080` (o el configurado en `application.properties`).
+La aplicación se iniciará generalmente en el puerto `8081` (o el configurado en `application.properties`).
 
 ## 🔌 API Endpoints
 
@@ -89,7 +89,7 @@ Envía los datos de un vuelo para obtener una predicción.
     *   `CoreApplication.java`: Clase principal de arranque.
     *   `controller`: Controladores REST (`FlightController`).
     *   `service`: Lógica de negocio.
-        *   `FlightPredictionService.java`: Carga y ejecuta el modelo ONNX.
+        *   `FlightPredictionServiceImpl.java`: Carga y ejecuta el modelo ONNX.
         *   `FeatureEngineeringService.java`: Transforma los datos crudos en vectores para el modelo.
     *   `model`: Clases de dominio (`Flight`).
     *   `dto`: Objetos de transferencia de datos (`FlightRequestDTO`, `PredictionResponseDTO`).
@@ -101,5 +101,5 @@ Envía los datos de un vuelo para obtener una predicción.
 El proceso de inferencia sigue estos pasos:
 1.  **Recepción**: El `FlightController` recibe el JSON y lo valida.
 2.  **Transformación**: `FeatureEngineeringService` convierte las variables categóricas (aerolínea, aeropuertos) y numéricas en un vector `float[]` compatible con el modelo.
-3.  **Inferencia**: `FlightPredictionService` utiliza la sesión de ONNX Runtime para procesar el vector.
+3.  **Inferencia**: `FlightPredictionServiceImpl` utiliza la sesión de ONNX Runtime para procesar el vector.
 4.  **Interpretación**: Se analiza la probabilidad de salida; si es mayor a 0.5 (50%), se clasifica como retraso.

@@ -12,6 +12,6 @@ import lombok.Setter;
 
 public class PredictionResult {
     private String prevision;
-    private double probabilidad;
+    private Double probabilidad;
 
 }

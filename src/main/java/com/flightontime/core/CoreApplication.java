@@ -3,6 +3,7 @@ package com.flightontime.core;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @OpenAPIDefinition(
 		info = @io.swagger.v3.oas.annotations.info.Info(
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 )
 
 @SpringBootApplication
+@EnableAsync
 public class CoreApplication {
 
 	public static void main(String[] args) {

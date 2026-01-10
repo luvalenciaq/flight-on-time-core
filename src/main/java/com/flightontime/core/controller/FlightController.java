@@ -1,5 +1,6 @@
 package com.flightontime.core.controller;
 
+import ai.onnxruntime.OnnxTensor;
 import com.flightontime.core.dto.FlightRequestDTO;
 import com.flightontime.core.dto.PredictionResponseDTO;
 import com.flightontime.core.model.Flight;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/internal")
@@ -46,11 +49,11 @@ public class FlightController {
         flight.setDistanciaKm(dto.distanciaKm());
 
         try {
-            // 1. Transformar (modelo -> float[])
-            float[] vector = featureService.transformar(flight);
+            // 1. Transformar Flight a Map<String, OnnxTensor>
+            Map<String, OnnxTensor> features = featureService.transformar(flight);
 
-            // 2. Predecir
-            PredictionResponseDTO resultado = predictionService.predecir(vector);
+            // 2. Predecir usando el modelo ONNX
+            PredictionResponseDTO resultado = predictionService.predecir(features);
 
             // 3. --- GUARDAR EN BASE DE DATOS ---
             // aqui ira la logica

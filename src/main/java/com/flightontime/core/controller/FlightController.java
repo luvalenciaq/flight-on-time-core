@@ -3,6 +3,8 @@ package com.flightontime.core.controller;
 import com.flightontime.core.dto.FlightRequestDTO;
 import com.flightontime.core.dto.PredictionResponseDTO;
 import com.flightontime.core.model.Flight;
+import com.flightontime.core.repository.AirlineRepository;
+import com.flightontime.core.repository.AirportRepository;
 import com.flightontime.core.service.FeatureEngineeringService;
 import com.flightontime.core.service.FlightPredictionService;
 import com.flightontime.core.service.PredictionHistoryService;
@@ -31,6 +33,8 @@ public class FlightController {
     private final FeatureEngineeringService featureService;
     private final FlightPredictionService predictionService;
     private final PredictionHistoryService historyService;
+    private final AirlineRepository airlineRepository;
+    private final AirportRepository airportRepository;
 
     @Operation(summary = "Predecir puntualidad", description = "Recibe datos de un vuelo y devuelve la probabilidad de que sea puntual.")
     @ApiResponses(value = {
@@ -41,6 +45,33 @@ public class FlightController {
 
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
+        // VALIDACIONES CONTRA BASE DE DATOS
+
+        // 1. Validar Aerolínea
+        if (!airlineRepository.existsByCodigo(dto.aerolinea())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "La aerolínea '" + dto.aerolinea() + "' no existe o no está soportada."));
+        }
+
+        // 2. Validar Origen
+        if (!airportRepository.existsByCodigo(dto.origen())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "El aeropuerto de origen '" + dto.origen() + "' no es válido."));
+        }
+
+        // 3. Validar Destino
+        if (!airportRepository.existsByCodigo(dto.destino())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "El aeropuerto de destino '" + dto.destino() + "' no es válido."));
+        }
+
+        // 4. Validar que Origen y Destino no sean iguales
+        if (dto.origen().equals(dto.destino())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "El origen y el destino no pueden ser el mismo aeropuerto."));
+        }
+
+        // FIN VALIDACIONES
 
         Flight flight = new Flight(); // aqui convierto el dto a mi modelo de dominio -flight-
         flight.setAerolinea(dto.aerolinea());

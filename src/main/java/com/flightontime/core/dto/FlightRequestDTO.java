@@ -17,6 +17,6 @@ public record FlightRequestDTO(
         @Schema(description = "Distancia del vuelo en kilómetros", example = "3980.5") double distanciaKm
 ) {
     public FlightRequestDTO(Flight flight){
-        this(flight.getAerolinea(), flight.getOrigen(), flight.getDestino(), flight.getFechaPartida(), flight.getDistanciaKm());
+        this(flight.getAerolinea().getCodigo(), flight.getOrigen().getCodigo(), flight.getDestino().getCodigo(), flight.getFechaPartida(), flight.getDistanciaKm());
     }
 }

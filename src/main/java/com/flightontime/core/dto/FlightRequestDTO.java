@@ -15,6 +15,6 @@ public record FlightRequestDTO(
         @Schema(description = "Fecha y hora de partida programada", example = "2026-10-27T10:00:00") LocalDateTime fechaPartida
 ) { //se borra distancia aqui tambien porque es el contrato con bff
     public FlightRequestDTO(Flight flight){
-        this(flight.getAerolinea(), flight.getOrigen(), flight.getDestino(), flight.getFechaPartida());
+        this(flight.getAerolinea().getCodigo(), flight.getOrigen().getCodigo(), flight.getDestino().getCodigo(), flight.getFechaPartida());
     }
 }

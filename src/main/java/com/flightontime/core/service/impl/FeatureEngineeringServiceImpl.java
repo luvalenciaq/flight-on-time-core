@@ -27,11 +27,13 @@ public class FeatureEngineeringServiceImpl implements FeatureEngineeringService 
 
         try {
             double distanciaKm = distanceService.getDistanceKm(
-                    flight.getOrigen(),
-                    flight.getDestino()
+                    flight.getOrigen().getNombre(),
+                    flight.getDestino().getNombre()
             );
-
             float distancia = (float) distanciaKm;
+            // 1. Se obtienen los valores desde el dominio (Flight)
+            // y se transforman al tipo esperado por el modelo ONNX.
+            //float distancia = flight.getDistanciaKm().floatValue(); //aqui se espera float por eso se convierte
             // 1. Se obtienen los valores desde el dominio (Flight)
             // y se transforman al tipo esperado por el modelo ONNX.
             //-----float distancia = flight.getDistanciaKm().floatValue(); //aqui se espera float por eso se convierte
@@ -46,9 +48,9 @@ public class FeatureEngineeringServiceImpl implements FeatureEngineeringService 
 
             //El modelo espera tensores de shape [-1, 1]
             //por lo que se deben usar arreglos 2D: String[][] o float[][]
-            features.put("aerolinea", OnnxTensor.createTensor(env, new String[][]{{flight.getAerolinea()}}));
-            features.put("origen", OnnxTensor.createTensor(env, new String[][]{{flight.getOrigen()}}));
-            features.put("destino", OnnxTensor.createTensor(env, new String[][]{{flight.getDestino()}}));
+            features.put("aerolinea", OnnxTensor.createTensor(env, new String[][]{{flight.getAerolinea().getCodigo()}}));
+            features.put("origen", OnnxTensor.createTensor(env, new String[][]{{flight.getOrigen().getCodigo()}}));
+            features.put("destino", OnnxTensor.createTensor(env, new String[][]{{flight.getDestino().getCodigo()}}));
             features.put("distancia", OnnxTensor.createTensor(env, new float[][]{{distancia}}));
             features.put("hora", OnnxTensor.createTensor(env, new float[][]{{hora}}));
             features.put("dia_semana", OnnxTensor.createTensor(env, new float[][]{{diaSemana}}));

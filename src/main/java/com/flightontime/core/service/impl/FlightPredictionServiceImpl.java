@@ -32,9 +32,15 @@ public class FlightPredictionServiceImpl implements FlightPredictionService {
         env = OrtEnvironment.getEnvironment();
 
         // Cargar modelo desde resources como byte[]
-        byte[] modelArray = getClass()
-                .getResourceAsStream("/modelo_prediccion_vuelos.onnx")
-                .readAllBytes();
+        var is = getClass()
+                .getClassLoader()
+                .getResourceAsStream("modelo_prediccion_vuelos.onnx");
+
+        if (is == null) {
+            throw new IllegalStateException("❌ No se encontró modelo_prediccion_vuelos.onnx en el classpath");
+        }
+
+        byte[] modelArray = is.readAllBytes();
 
         // Crear sesión de inferencia
         session = env.createSession(modelArray, new OrtSession.SessionOptions());

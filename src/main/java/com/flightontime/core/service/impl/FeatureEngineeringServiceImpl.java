@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import com.flightontime.core.model.Flight;
+import com.flightontime.core.service.DistanceService;
 import com.flightontime.core.service.FeatureEngineeringService;
 import org.springframework.stereotype.Service;
 
@@ -15,14 +16,25 @@ public class FeatureEngineeringServiceImpl implements FeatureEngineeringService 
 
     // Entorno global de ONNX Runtime (se reutiliza en toda la app)
     private final OrtEnvironment env = OrtEnvironment.getEnvironment();
+    private final DistanceService distanceService;
+
+    public FeatureEngineeringServiceImpl(DistanceService distanceService) {
+        this.distanceService = distanceService;
+    }
 
     @Override
     public Map<String, OnnxTensor> transformar(Flight flight) {
 
         try {
+            double distanciaKm = distanceService.getDistanceKm(
+                    flight.getOrigen(),
+                    flight.getDestino()
+            );
+
+            float distancia = (float) distanciaKm;
             // 1. Se obtienen los valores desde el dominio (Flight)
             // y se transforman al tipo esperado por el modelo ONNX.
-            float distancia = flight.getDistanciaKm().floatValue(); //aqui se espera float por eso se convierte
+            //-----float distancia = flight.getDistanciaKm().floatValue(); //aqui se espera float por eso se convierte
             //variables derivadas de la fecha
             int hora = flight.getFechaPartida().getHour();
             int diaSemana = flight.getFechaPartida().getDayOfWeek().getValue() - 1;

@@ -46,7 +46,7 @@ public class FlightController {
         flight.setOrigen(dto.origen());
         flight.setDestino(dto.destino());
         flight.setFechaPartida(dto.fechaPartida());
-        flight.setDistanciaKm(dto.distanciaKm());
+//borré el campo de distancia
 
         // 1. Dominio → Features (ONNX-ready)
         Map<String, OnnxTensor> features = featureService.transformar(flight);

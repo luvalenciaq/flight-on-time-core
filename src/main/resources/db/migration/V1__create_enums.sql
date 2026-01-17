@@ -1,0 +1,1 @@
+CREATE TYPE estado_vuelo AS ENUM ('PUNTUAL', 'RETRASADO');

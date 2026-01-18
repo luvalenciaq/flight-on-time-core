@@ -21,7 +21,7 @@ public class FlightPredictionServiceImpl implements FlightPredictionService {
     private OrtEnvironment env;
     private OrtSession session;
     private static final Logger log =
-            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+            LoggerFactory.getLogger(FlightPredictionServiceImpl.class);
 
     //Inicializa ONNX Runtime y carga el modelo al arrancar el servicio.
      //Se ejecuta una sola vez.
@@ -34,7 +34,7 @@ public class FlightPredictionServiceImpl implements FlightPredictionService {
         // Cargar modelo desde resources como byte[]
         var is = getClass()
                 .getClassLoader()
-                .getResourceAsStream("modelo_prediccion_vuelos.onnx");
+                .getResourceAsStream("v2_modelo_prediccion_vuelos.onnx");
 
         if (is == null) {
             throw new IllegalStateException("❌ No se encontró modelo_prediccion_vuelos.onnx en el classpath");
@@ -64,28 +64,45 @@ public class FlightPredictionServiceImpl implements FlightPredictionService {
         // Ejecutar inferencia usando inputs por nombre
         try (OrtSession.Result result = session.run(features)) {
 
-            // Output probabilities → FLOAT [-1, 2]
-            float[][] probabilities =
-                    (float[][]) result.get("probabilities").get().getValue();
+            // Output del modelo: tensor INT64 [-1]
+            // Contiene la clase predicha:
+            // 0 = Puntual, 1 = Retrasado
+            long[] labels =
+                    (long[]) result.get("output_label").get().getValue();
 
-            // Output label → INT64 [-1]
-            long[] label =
-                    (long[]) result.get("label").get().getValue();
+            // Secuencia de mapas devuelta por ONNX
+            @SuppressWarnings("unchecked")
+            List<OnnxMap> probabilitiesSeq =
+                    (List<OnnxMap>) result
+                            .get("output_probability")
+                            .get()
+                            .getValue();
 
-            // Probabilidades de la primera fila (batch = 1)
-            float probPuntual = probabilities[0][0];
-            float probRetraso = probabilities[0][1];
-            long predicted    = label[0];
+            // Validación básica por seguridad
+            if (labels.length == 0 || probabilitiesSeq.isEmpty()) {
+                throw new ModelInferenceException("Salida vacía del modelo");
+            }
 
-            // Interpretación de la clase predicha
-            String estado = (predicted == 1L)
+            // Como se procesa un solo vuelo (batch = 1),
+            // se toma la primera posición
+            long predictedLabel = labels[0];
+
+            // Mapa de probabilidades del vuelo
+            // key 0 → puntual
+            // key 1 → retrasado
+            Map<Long, Float> probMap =
+                    (Map<Long, Float>) (Map<?, ?>) probabilitiesSeq.get(0).getValue();
+
+            // Score de riesgo = probabilidad de retraso (clase 1)
+            double scoreRiesgo = probMap.getOrDefault(1L, 0.0f);
+
+            // Traducción del label a un estado legible
+            String estado = (predictedLabel == 1L)
                     ? "Retrasado"
                     : "Puntual";
 
-            return new PredictionResponseDTO(
-                    estado,
-                    (double) probRetraso
-            );
+            // Respuesta final al cliente
+            return new PredictionResponseDTO(estado, scoreRiesgo);
 
         } catch (OrtException e) {
             // Error durante la inferencia del modelo

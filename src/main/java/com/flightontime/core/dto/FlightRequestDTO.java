@@ -1,5 +1,6 @@
 package com.flightontime.core.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flightontime.core.model.Flight;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,6 +13,7 @@ public record FlightRequestDTO(
         @Schema(description = "Código del aeropuerto de origen", example = "JFK") String origen,
         @Schema(description = "Código del aeropuerto de destino", example = "LAX") String destino,
         @JsonProperty("fecha_partida")
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") //ayuda a Jackson a convertir la fecha
         @Schema(description = "Fecha y hora de partida programada", example = "2026-10-27T10:00:00") LocalDateTime fechaPartida
 ) { //se borra distancia aqui tambien porque es el contrato con bff
     public FlightRequestDTO(Flight flight){

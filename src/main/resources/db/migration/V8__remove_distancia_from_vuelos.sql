@@ -1,0 +1,1 @@
+ALTER TABLE vuelos DROP COLUMN distancia_km;

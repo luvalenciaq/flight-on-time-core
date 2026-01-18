@@ -37,9 +37,6 @@ public class Flight {
     @Column(name = "fecha_partida", nullable = false)
     private LocalDateTime fechaPartida;
 
-    @Column(name = "distancia_km", nullable = false)
-    private Double distanciaKm;
-
     @Column(name = "fecha_creacion", updatable = false, nullable = false)
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 

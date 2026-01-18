@@ -2,7 +2,11 @@ package com.flightontime.core.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flightontime.core.model.Distance;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
@@ -11,34 +15,23 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class DistanceRepository {
+public interface DistanceRepository extends JpaRepository<Distance, Long> {
 
-    private static final String DISTANCE_FILE = "/distances.json";
+    Optional<Distance> findByOrigen_CodigoAndDestino_Codigo(
+            String origenCodigo,
+            String destinotionCodigo
+    );
 
-    private final Map<String, Double> distanceByRoute;
+    @Query("SELECT d.distanciaKm FROM Distance d " +
+            "WHERE d.origen.codigo = :origenCodigo " +
+            "AND d.destino.codigo = :destinoCodigo")
+    Optional<Double> findDistanciaKmByRoute(
+            @Param("origenCodigo") String origenCodigo,
+            @Param("destinoCodigo") String destinoCodigo
+    );
 
-    public DistanceRepository(ObjectMapper objectMapper) {
-        this.distanceByRoute = loadDistances(objectMapper);
-    }
-
-    private Map<String, Double> loadDistances(ObjectMapper objectMapper) {
-        try (InputStream is =
-                     new ClassPathResource(DISTANCE_FILE).getInputStream()) {
-
-            return objectMapper.readValue(
-                    is,
-                    new TypeReference<Map<String, Double>>() {}
-            );
-
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Error loading distance map from JSON", e
-            );
-        }
-    }
-
-    public Optional<Double> findDistanceKm(String origin, String destination) {
-        String key = origin + "-" + destination;
-        return Optional.ofNullable(distanceByRoute.get(key));
-    }
+    boolean existsByOrigen_CodigoAndDestino_Codigo(
+            String origenCodigo,
+            String destinoCodigo
+    );
 }

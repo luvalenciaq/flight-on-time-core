@@ -1,5 +1,8 @@
 package com.flightontime.core.web.exception;
 
+import com.flightontime.core.exception.AirlineNotFoundException;
+import com.flightontime.core.exception.AirportNotFoundException;
+import com.flightontime.core.exception.DistanceNotFoundException;
 import com.flightontime.core.exception.ModelInferenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +28,32 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage()
         ));
+    }
+
+    @ExceptionHandler({
+            AirportNotFoundException.class,
+            AirlineNotFoundException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleNotFoundEntities(
+            RuntimeException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(buildResponse(
+                        HttpStatus.NOT_FOUND,
+                        ex.getMessage()
+                ));
+    }
+
+
+    @ExceptionHandler(DistanceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleDistanceNotFound(DistanceNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(buildResponse(
+                        HttpStatus.NOT_FOUND,
+                        ex.getMessage()
+                ));
     }
 
     @ExceptionHandler(ModelInferenceException.class)

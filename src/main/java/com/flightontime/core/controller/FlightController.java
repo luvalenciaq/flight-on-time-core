@@ -11,6 +11,7 @@ import com.flightontime.core.repository.FlightRepository;
 import com.flightontime.core.repository.PredictionResultRepository;
 import com.flightontime.core.service.FeatureEngineeringService;
 import com.flightontime.core.service.FlightPredictionService;
+import com.flightontime.core.util.DistanceCalculator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -66,7 +67,10 @@ public class FlightController {
             flight.setOrigen(origen);
             flight.setDestino(destino);
             flight.setFechaPartida(dto.fechaPartida());
-            flight.setDistanciaKm(dto.distanciaKm());
+
+            //CALCULAR DISTANCIA AUTOMÁTICAMENTE
+            Double distanciaCalculada = DistanceCalculator.calcularDistanciaRedondeada(origen, destino);
+            flight.setDistanciaKm(distanciaCalculada != null ? distanciaCalculada : 500.0);
 
             // 1. Transformar Flight a Map<String, OnnxTensor>
             Map<String, OnnxTensor> features = featureService.transformar(flight);

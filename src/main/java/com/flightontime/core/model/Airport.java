@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -29,12 +30,20 @@ public class Airport {
     @Column(nullable = false, length = 100)
     private String ciudad;
 
-    @Column(nullable = false, length = 50)
-    private String pais;
-
     @Column(nullable = false)
     private Boolean activo = true;
 
-    @Column(name = "fecha_creacion", insertable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
+    @Column(name = "es_origen")
+    private Boolean esOrigen;
+
+    @Column(name = "es_destino")
+    private Boolean esDestino;
+
+
+    //Se agregan latitud y longitud
+    @Column(name = "latitud", precision = 10, scale = 8)
+    private BigDecimal latitud;
+
+    @Column(name = "longitud", precision = 11, scale = 8)
+    private BigDecimal longitud;
 }

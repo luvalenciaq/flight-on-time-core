@@ -26,12 +26,7 @@ public class Airline {
     @Column(nullable = false, length = 100)
     private String nombre;
 
-    @Column(name = "pais_origen", length = 50)
-    private String paisOrigen;
-
     @Column(nullable = false)
     private Boolean activa = true;
 
-    @Column(name = "fecha_creacion", insertable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
 }

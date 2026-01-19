@@ -1,8 +1,10 @@
 package com.flightontime.core;
 
+import ai.onnxruntime.OrtEnvironment;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @OpenAPIDefinition(
@@ -21,4 +23,9 @@ public class CoreApplication {
 		SpringApplication.run(CoreApplication.class, args);
 	}
 
+	@Bean
+	public OrtEnvironment ortEnvironment() {
+		// Inicializa el entorno de ONNX Runtime
+		return OrtEnvironment.getEnvironment();
+	}
 }

@@ -47,25 +47,21 @@ public class FlightController {
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
         // VALIDACIONES CONTRA BASE DE DATOS
 
-        // 1. Validar Aerolínea
+        // 1. Validaciones
         if (!airlineRepository.existsByCodigo(dto.aerolinea())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "La aerolínea '" + dto.aerolinea() + "' no existe o no está soportada."));
         }
-
-        // 2. Validar Origen
         if (!airportRepository.existsByCodigo(dto.origen())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "El aeropuerto de origen '" + dto.origen() + "' no es válido."));
         }
 
-        // 3. Validar Destino
         if (!airportRepository.existsByCodigo(dto.destino())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "El aeropuerto de destino '" + dto.destino() + "' no es válido."));
         }
 
-        // 4. Validar que Origen y Destino no sean iguales
         if (dto.origen().equals(dto.destino())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "El origen y el destino no pueden ser el mismo aeropuerto."));
@@ -73,6 +69,7 @@ public class FlightController {
 
         // FIN VALIDACIONES
 
+        // 2. Convertir DTO a Entidad de Dominio
         Flight flight = new Flight(); // aqui convierto el dto a mi modelo de dominio -flight-
         flight.setAerolinea(dto.aerolinea());
         flight.setOrigen(dto.origen());
@@ -81,15 +78,18 @@ public class FlightController {
         flight.setDistanciaKm(dto.distanciaKm());
 
         try {
-            // 1. Transformar (modelo -> float[])
+            // 3. TRANSFORMACIÓN MAGICA (Aquí ocurre todo)
+            // El servicio va a la API de clima, calcula rangos,
+            // obtiene día de la semana, etc. y devuelve los tensores listos.
             Map<String, OnnxTensor> features = featureService.transformar(flight);
 
-            // 2. Predecir
+            // 4. PREDICCIÓN (Consulta al modelo ONNX)
             PredictionResponseDTO resultado = predictionService.predecir(features);
 
-            // 3. --- GUARDAR EN BASE DE DATOS ---
+            // 5. AUDITORÍA (Guardar en historial)
             historyService.guardarHistorial(flight, resultado);
 
+            // 6. RESPUESTA AL CLIENTE
             return ResponseEntity.ok(resultado);
 
         } catch (IllegalArgumentException e) {

@@ -2,58 +2,69 @@ package com.flightontime.core.service.impl;
 
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
+import com.flightontime.core.dto.WeatherFeaturesDTO;
 import com.flightontime.core.model.Flight;
 import com.flightontime.core.service.FeatureEngineeringService;
+import com.flightontime.core.service.WeatherService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class FeatureEngineeringServiceImpl implements FeatureEngineeringService {
 
-    // Entorno global de ONNX Runtime (se reutiliza en toda la app)
-    private final OrtEnvironment env = OrtEnvironment.getEnvironment();
+    private final OrtEnvironment env;
+
+    private final WeatherService weatherService;
 
     @Override
-    public Map<String, OnnxTensor> transformar(Flight flight) {
+    public Map<String, OnnxTensor> transformar(Flight flight) throws Exception {
+        Map<String, OnnxTensor> features = new HashMap<>();
 
-        try {
-            // 1. Se obtienen los valores desde el dominio (Flight)
-            // y se transforman al tipo esperado por el modelo ONNX.
-            float distancia = flight.getDistanciaKm().floatValue(); //aqui se espera float por eso se convierte
-            //variables derivadas de la fecha
-            int hora = flight.getFechaPartida().getHour();
-            int diaSemana = flight.getFechaPartida().getDayOfWeek().getValue() - 1;
-            int mes = flight.getFechaPartida().getMonthValue();
+        // 1. Obtener Features Climáticas (Llamada a la API externa)
+        WeatherFeaturesDTO clima = weatherService.obtenerFeaturesClimaticas(flight.getOrigen(), flight.getFechaPartida());
 
-            //La clave del Map debe coincidir EXACTAMENTE
-            // con el nombre de los inputs del modelo ONNX.
-            Map<String, OnnxTensor> features = new HashMap<>();
+        // 2. Calcular variables derivadas del Vuelo
+        int hour = flight.getFechaPartida().getHour();
+        int dayOfWeekNum = flight.getFechaPartida().getDayOfWeek().getValue() - 1; // Lunes=1 en Java -> Restar 1 para que Lunes=0 (Python)
+        int isWeekend = (dayOfWeekNum >= 5) ? 1 : 0; // 5=Sabado, 6=Domingo
+        String depTimeOfDay = getTimeOfDay(hour);
 
-            //El modelo espera tensores de shape [-1, 1]
-            //por lo que se deben usar arreglos 2D: String[][] o float[][]
-            features.put("aerolinea", OnnxTensor.createTensor(env, new String[][]{{flight.getAerolinea()}}));
-            features.put("origen", OnnxTensor.createTensor(env, new String[][]{{flight.getOrigen()}}));
-            features.put("destino", OnnxTensor.createTensor(env, new String[][]{{flight.getDestino()}}));
-            features.put("distancia", OnnxTensor.createTensor(env, new float[][]{{distancia}}));
-            features.put("hora", OnnxTensor.createTensor(env, new float[][]{{hora}}));
-            features.put("dia_semana", OnnxTensor.createTensor(env, new float[][]{{diaSemana}}));
-            features.put("mes", OnnxTensor.createTensor(env, new float[][]{{mes}}));
-            /*
-             * El mapa resultante se envía al servicio de inferencia,
-             * donde será usado directamente en session.run(features).
+        // 3. Crear Tensores (Según contrato V2)
+        // Categóricas (String) - Array de [1,1]
+        features.put("OP_CARRIER", OnnxTensor.createTensor(env, new String[][]{{flight.getAerolinea()}}));
+        features.put("ORIGIN", OnnxTensor.createTensor(env, new String[][]{{flight.getOrigen()}}));
+        features.put("DEST", OnnxTensor.createTensor(env, new String[][]{{flight.getDestino()}}));
+        features.put("dep_time_of_day", OnnxTensor.createTensor(env, new String[][]{{depTimeOfDay}}));
 
-             * El cierre de los tensores NO se hace aquí,
-             * sino después de ejecutar la inferencia,
-             * para evitar cerrar recursos antes de tiempo.
-             */
-            return features;
+        // Numéricas (Int/Float) - Array de [1,1]
+        // Nota: ONNX en Java es estricto con los tipos. Int -> long[][], Float -> float[][]
 
-        } catch (OrtException e) {
-            throw new IllegalStateException("Error creando tensores ONNX", e);
-        }
+        // Inputs tipo 'int' en doc -> convertimos todo a (float)
+        features.put("hour", OnnxTensor.createTensor(env, new float[][]{{hour}}));
+        features.put("day_of_week_num", OnnxTensor.createTensor(env, new float[][]{{dayOfWeekNum}}));
+        features.put("DISTANCE_KM", OnnxTensor.createTensor(env, new float[][]{{flight.getDistanciaKm().longValue()}}));
+
+        // Inputs booleanos (0/1) -> Usamos long
+        features.put("has_precip", OnnxTensor.createTensor(env, new float[][]{{clima.hasPrecip()}}));
+        features.put("has_snow", OnnxTensor.createTensor(env, new float[][]{{clima.hasSnow()}}));
+        features.put("high_wind", OnnxTensor.createTensor(env, new float[][]{{clima.highWind()}}));
+        features.put("is_weekend", OnnxTensor.createTensor(env, new float[][]{{isWeekend}}));
+
+        // Inputs tipo 'float' en doc -> Usamos float en Java
+        features.put("temp_range_f", OnnxTensor.createTensor(env, new float[][]{{(float) clima.tempRangeF()}}));
+        features.put("dewpoint_range_f", OnnxTensor.createTensor(env, new float[][]{{(float) clima.dewpointRangeF()}}));
+
+        return features;
+    }
+
+    private String getTimeOfDay(int hour) {
+        if (hour >= 5 && hour < 12) return "morning";
+        if (hour >= 12 && hour < 18) return "afternoon";
+        if (hour >= 18 && hour < 23) return "evening";
+        return "night";
     }
 }
-

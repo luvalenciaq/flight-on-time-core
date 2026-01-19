@@ -237,3 +237,8 @@ INSERT IGNORE INTO aerolineas (codigo, nombre) VALUES ('AA', 'American Airlines'
 INSERT IGNORE INTO aerolineas (codigo, nombre) VALUES ('AS', 'Alaska Airlines');
 INSERT IGNORE INTO aerolineas (codigo, nombre) VALUES ('B6', 'JetBlue Airways');
 INSERT IGNORE INTO aerolineas (codigo, nombre) VALUES ('C5', 'CommutAir');
+
+-- Actualizar coordenadas para pruebas (API weather.gov requiere lat/lon)
+UPDATE aeropuertos SET latitud = 40.6413, longitud = -73.7781 WHERE codigo = 'JFK';
+UPDATE aeropuertos SET latitud = 33.9416, longitud = -118.4085 WHERE codigo = 'LAX';
+UPDATE aeropuertos SET latitud = 25.7959, longitud = -80.2870 WHERE codigo = 'MIA';

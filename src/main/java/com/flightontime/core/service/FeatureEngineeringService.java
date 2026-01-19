@@ -6,5 +6,4 @@ import com.flightontime.core.model.Flight;
 import java.util.Map;
 
 public interface FeatureEngineeringService {
-    Map<String, OnnxTensor> transformar(Flight flight);
-}
+    Map<String, OnnxTensor> transformar(Flight flight) throws Exception;}

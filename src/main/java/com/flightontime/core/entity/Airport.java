@@ -16,8 +16,13 @@ public class Airport {
     private String codigo;
     private String ciudad;
 
-    public Airport(String codigo, String ciudad) {
+    private Double latitud;
+    private Double longitud;
+
+    public Airport(String codigo, String ciudad, Double latitud, Double longitud) {
         this.codigo = codigo;
         this.ciudad = ciudad;
+        this.latitud = latitud;
+        this.longitud = longitud;
     }
 }

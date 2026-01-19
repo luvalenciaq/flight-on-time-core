@@ -2,12 +2,15 @@ package com.flightontime.core.controller;
 
 import com.flightontime.core.dto.FlightRequestDTO;
 import com.flightontime.core.dto.PredictionResponseDTO;
+import com.flightontime.core.exception.FlightValidationException;
 import com.flightontime.core.model.Flight;
 import com.flightontime.core.repository.AirlineRepository;
 import com.flightontime.core.repository.AirportRepository;
 import com.flightontime.core.service.FeatureEngineeringService;
 import com.flightontime.core.service.FlightPredictionService;
 import com.flightontime.core.service.PredictionHistoryService;
+import com.flightontime.core.util.DistanceCalculator;
+import com.flightontime.core.util.FlightValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,6 +38,7 @@ public class FlightController {
     private final PredictionHistoryService historyService;
     private final AirlineRepository airlineRepository;
     private final AirportRepository airportRepository;
+    private final FlightValidator flightValidator;
 
     @Operation(summary = "Predecir puntualidad", description = "Recibe datos de un vuelo y devuelve la probabilidad de que sea puntual.")
     @ApiResponses(value = {
@@ -45,58 +49,35 @@ public class FlightController {
 
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
-        // VALIDACIONES CONTRA BASE DE DATOS
-
-        // 1. Validaciones
-        if (!airlineRepository.existsByCodigo(dto.aerolinea())) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "La aerolínea '" + dto.aerolinea() + "' no existe o no está soportada."));
-        }
-        if (!airportRepository.existsByCodigo(dto.origen())) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "El aeropuerto de origen '" + dto.origen() + "' no es válido."));
-        }
-
-        if (!airportRepository.existsByCodigo(dto.destino())) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "El aeropuerto de destino '" + dto.destino() + "' no es válido."));
-        }
-
-        if (dto.origen().equals(dto.destino())) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "El origen y el destino no pueden ser el mismo aeropuerto."));
-        }
-
-        // FIN VALIDACIONES
-
-        // 2. Convertir DTO a Entidad de Dominio
-        Flight flight = new Flight(); // aqui convierto el dto a mi modelo de dominio -flight-
-        flight.setAerolinea(dto.aerolinea());
-        flight.setOrigen(dto.origen());
-        flight.setDestino(dto.destino());
-        flight.setFechaPartida(dto.fechaPartida());
-        flight.setDistanciaKm(dto.distanciaKm());
-
         try {
-            // 3. TRANSFORMACIÓN MAGICA (Aquí ocurre todo)
-            // El servicio va a la API de clima, calcula rangos,
-            // obtiene día de la semana, etc. y devuelve los tensores listos.
+            // 1. VALIDACIÓN Y CONSTRUCCIÓN (Todo ocurre aquí dentro)
+            // Si algo falla, lanza FlightValidationException y salta al catch
+            Flight flight = flightValidator.validarYConstruirVuelo(dto);
+
+            // 2. Transformación de Features
             Map<String, OnnxTensor> features = featureService.transformar(flight);
 
-            // 4. PREDICCIÓN (Consulta al modelo ONNX)
+            // 3. Predicción
             PredictionResponseDTO resultado = predictionService.predecir(features);
 
-            // 5. AUDITORÍA (Guardar en historial)
+            // 4. Guardar Historial
             historyService.guardarHistorial(flight, resultado);
 
-            // 6. RESPUESTA AL CLIENTE
             return ResponseEntity.ok(resultado);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error datos: " + e.getMessage());
+        } catch (FlightValidationException e) {
+            // Manejo de errores de validación (Aeropuerto no existe, etc.)
+            return ResponseEntity.badRequest().body(Map.of(
+                    "codigo", "VALIDATION_ERROR",
+                    "mensaje", e.getMessage()
+            ));
         } catch (Exception e) {
+            // Manejo de errores técnicos inesperados
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error del modelo: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "codigo", "INTERNAL_ERROR",
+                    "mensaje", "Error procesando la predicción: " + e.getMessage()
+            ));
         }
     }
 }

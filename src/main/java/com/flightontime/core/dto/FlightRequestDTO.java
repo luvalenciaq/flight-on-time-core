@@ -12,11 +12,9 @@ public record FlightRequestDTO(
         @Schema(description = "Código del aeropuerto de origen", example = "JFK") String origen,
         @Schema(description = "Código del aeropuerto de destino", example = "LAX") String destino,
         @JsonProperty("fecha_partida")
-        @Schema(description = "Fecha y hora de partida programada", example = "2026-10-27T10:00:00") LocalDateTime fechaPartida,
-        @JsonProperty("distancia_km")
-        @Schema(description = "Distancia del vuelo en kilómetros", example = "3980.5") double distanciaKm
+        @Schema(description = "Fecha y hora de partida programada", example = "2026-10-27T10:00:00") LocalDateTime fechaPartida
 ) {
     public FlightRequestDTO(Flight flight){
-        this(flight.getAerolinea().getCodigo(), flight.getOrigen().getCodigo(), flight.getDestino().getCodigo(), flight.getFechaPartida(), flight.getDistanciaKm());
+        this(flight.getAerolinea().getCodigo(), flight.getOrigen().getCodigo(), flight.getDestino().getCodigo(), flight.getFechaPartida());
     }
 }

@@ -17,7 +17,6 @@ import java.util.Map;
 public class FeatureEngineeringServiceImpl implements FeatureEngineeringService {
 
     private final OrtEnvironment env;
-
     private final WeatherService weatherService;
 
     @Override

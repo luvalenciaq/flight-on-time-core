@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface AirlineRepository extends JpaRepository<Airline, Long> {
 
     Optional<Airline> findByCodigo(String codigo);
-
+    boolean existsByCodigo(String codigo);
 }

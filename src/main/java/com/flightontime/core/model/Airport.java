@@ -37,4 +37,15 @@ public class Airport {
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
+
+    private Double latitud;
+    private Double longitud;
+
+
+    public Airport(String codigo, String ciudad, Double latitud, Double longitud) {
+        this.codigo = codigo;
+        this.ciudad = ciudad;
+        this.latitud = latitud;
+        this.longitud = longitud;
+    }
 }

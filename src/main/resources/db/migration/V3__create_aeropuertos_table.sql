@@ -6,5 +6,7 @@ CREATE TABLE aeropuertos (
     ciudad VARCHAR(50) NOT NULL,
     pais VARCHAR(50) NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT true,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    latitud DOUBLE PRECISION,
+    longitud DOUBLE PRECISION
 );

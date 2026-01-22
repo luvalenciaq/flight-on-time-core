@@ -2,6 +2,7 @@ package com.flightontime.core.controller;
 
 import ai.onnxruntime.OnnxTensor;
 import com.flightontime.core.dto.FlightRequestDTO;
+import com.flightontime.core.dto.FlightResponseDTO;
 import com.flightontime.core.dto.PredictionResponseDTO;
 import com.flightontime.core.exception.FlightValidationException;
 import com.flightontime.core.exception.ModelInferenceException;
@@ -22,12 +23,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -76,5 +75,21 @@ public class FlightController {
         predictionRepository.save(prediction);
 
         return ResponseEntity.ok(resultado);
+    }
+
+    @GetMapping("/flights")
+    @Operation(summary = "Listar vuelos", description = "Obtiene todos los vuelos guardados con sus predicciones")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de vuelos obtenida exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlightResponseDTO.class))),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    public ResponseEntity<List<FlightResponseDTO>> getAllFlights() {
+        List<PredictionResult> predictions = predictionRepository.findAllWithFlightDetails();
+
+        List<FlightResponseDTO> response = predictions.stream()
+                .map(FlightResponseDTO::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 }

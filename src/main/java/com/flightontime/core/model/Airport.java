@@ -38,7 +38,10 @@ public class Airport {
     @Column(name = "fecha_creacion", insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(nullable = false)
     private Double latitud;
+
+    @Column(nullable = false)
     private Double longitud;
 
 

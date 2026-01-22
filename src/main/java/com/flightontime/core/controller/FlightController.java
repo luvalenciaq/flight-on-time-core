@@ -39,6 +39,8 @@ public class FlightController {
     private final FeatureEngineeringService featureService;
     private final FlightPredictionService predictionService;
     private final FlightValidator flightValidator;
+    private final FlightRepository flightRepository;
+    private final PredictionResultRepository predictionRepository;
 
     @Operation(summary = "Predecir puntualidad", description = "Recibe datos de un vuelo y devuelve la probabilidad de que sea puntual.")
     @ApiResponses(value = {
@@ -61,6 +63,18 @@ public class FlightController {
             // 3. Predicción
             PredictionResponseDTO resultado = predictionService.predecir(features);
 
+            // 4. Persistence
+            // Guardar el primer vuelo y obtener el ID
+            Flight savedFlight = flightRepository.save(flight);
+
+            // Crear la predicción
+            PredictionResult prediction = new PredictionResult();
+            prediction.setFlight(savedFlight);
+            prediction.setProbabilidad(resultado.probabilidad());
+            prediction.setPrevision(EstadoVuelo.valueOf(resultado.prevision().toUpperCase()));
+
+            //Guardar la predicción
+            predictionRepository.save(prediction);
 
             return ResponseEntity.ok(resultado);
 

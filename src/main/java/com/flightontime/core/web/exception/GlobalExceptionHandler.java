@@ -1,5 +1,6 @@
 package com.flightontime.core.web.exception;
 
+import com.flightontime.core.exception.FlightValidationException;
 import com.flightontime.core.exception.ModelInferenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger log =
             LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(FlightValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleFlightValidation(
+            FlightValidationException ex
+    ) {
+        log.warn("Error de validación de vuelo: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        ));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadInput(

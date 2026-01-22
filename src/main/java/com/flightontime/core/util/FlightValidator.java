@@ -27,11 +27,11 @@ public class FlightValidator {
     public Flight validarYConstruirVuelo(FlightRequestDTO dto) {
 
         Optional<Airline> airlineOpt = airlineRepository.findByCodigo(dto.aerolinea());
-        Airline airline = airlineOpt.get();
         // 1. Validar Aerolínea
-        if (!airlineRepository.existsByCodigo(airline.getCodigo())) {
+        if (airlineOpt.isEmpty()) {
             throw new FlightValidationException("La aerolínea '" + dto.aerolinea() + "' no existe o no está soportada.");
         }
+        Airline airline = airlineOpt.get();
 
         // 2. Validar que Origen y Destino sean diferentes
         if (dto.origen().equalsIgnoreCase(dto.destino())) {

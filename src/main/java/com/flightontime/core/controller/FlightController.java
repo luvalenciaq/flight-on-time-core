@@ -52,45 +52,29 @@ public class FlightController {
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
 
-        try {
-            // 1. VALIDACIÓN Y CONSTRUCCIÓN (Todo ocurre aquí dentro)
-            // Si algo falla, lanza FlightValidationException y salta al catch
-            Flight flight = flightValidator.validarYConstruirVuelo(dto);
+        // 1. VALIDACIÓN Y CONSTRUCCIÓN
+        // Si falla, FlightValidationException será capturada por GlobalExceptionHandler
+        Flight flight = flightValidator.validarYConstruirVuelo(dto);
 
-            // 2. Transformación de Features
-            Map<String, OnnxTensor> features = featureService.transformar(flight);
+        // 2. Transformación de Features
+        Map<String, OnnxTensor> features = featureService.transformar(flight);
 
-            // 3. Predicción
-            PredictionResponseDTO resultado = predictionService.predecir(features);
+        // 3. Predicción
+        PredictionResponseDTO resultado = predictionService.predecir(features);
 
-            // 4. Persistence
-            // Guardar el primer vuelo y obtener el ID
-            Flight savedFlight = flightRepository.save(flight);
+        // 4. Persistencia
+        // Guardar el primer vuelo y obtener el ID
+        Flight savedFlight = flightRepository.save(flight);
 
-            // Crear la predicción
-            PredictionResult prediction = new PredictionResult();
-            prediction.setFlight(savedFlight);
-            prediction.setProbabilidad(resultado.probabilidad());
-            prediction.setPrevision(EstadoVuelo.valueOf(resultado.prevision().toUpperCase()));
+        // Crear la predicción
+        PredictionResult prediction = new PredictionResult();
+        prediction.setFlight(savedFlight);
+        prediction.setProbabilidad(resultado.probabilidad());
+        prediction.setPrevision(EstadoVuelo.valueOf(resultado.prevision().toUpperCase()));
 
-            //Guardar la predicción
-            predictionRepository.save(prediction);
+        //Guardar la predicción
+        predictionRepository.save(prediction);
 
-            return ResponseEntity.ok(resultado);
-
-        } catch (FlightValidationException e) {
-            // Manejo de errores de validación (Aeropuerto no existe, etc.)
-            return ResponseEntity.badRequest().body(Map.of(
-                    "codigo", "VALIDATION_ERROR",
-                    "mensaje", e.getMessage()
-            ));
-        } catch (Exception e) {
-            // Manejo de errores técnicos inesperados
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "codigo", "INTERNAL_ERROR",
-                    "mensaje", "Error procesando la predicción: " + e.getMessage()
-            ));
-        }
+        return ResponseEntity.ok(resultado);
     }
 }

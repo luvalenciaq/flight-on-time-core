@@ -2,11 +2,12 @@ package com.flightontime.core.service.impl;
 
 import ai.onnxruntime.*;
 import com.flightontime.core.dto.PredictionResponseDTO;
+import com.flightontime.core.dto.PredictionWithFeaturesDTO;
+import com.flightontime.core.dto.WeatherFeaturesDTO;
 import com.flightontime.core.exception.ModelInferenceException;
 import com.flightontime.core.service.FlightPredictionService;
 import com.flightontime.core.web.exception.GlobalExceptionHandler;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,89 +18,73 @@ import java.util.Map;
 @Service
 public class FlightPredictionServiceImpl implements FlightPredictionService {
 
-    // Runtime ONNX (entorno + sesión del modelo)
     private OrtEnvironment env;
     private OrtSession session;
-    private static final Logger log =
-            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(FlightPredictionService.class);
 
-    //Inicializa ONNX Runtime y carga el modelo al arrancar el servicio.
-     //Se ejecuta una sola vez.
     @PostConstruct
     public void init() throws Exception {
-
-        // Crear entorno ONNX
         env = OrtEnvironment.getEnvironment();
-
-        // Cargar modelo desde resources como byte[]
-        var is = getClass()
-                .getClassLoader()
-                .getResourceAsStream("modelo_prediccion_vuelos.onnx");
-
-        if (is == null) {
-            throw new IllegalStateException("❌ No se encontró modelo_prediccion_vuelos.onnx en el classpath");
-        }
-
-        byte[] modelArray = is.readAllBytes();
-
-        // Crear sesión de inferencia
+        // Carga del modelo desde resources
+        byte[] modelArray = getClass().getResourceAsStream("/vuelosclima_rfmodelo.onnx").readAllBytes();
         session = env.createSession(modelArray, new OrtSession.SessionOptions());
 
         log.info("✈️ Modelo ONNX cargado correctamente");
-
-        // Log de inputs esperados por el modelo (debug)
-        session.getInputInfo().forEach((name, info) ->
-                log.info("Input ONNX → {} : {}", name, info.getInfo())
-        );
-
-        // Log de outputs del modelo (clave para interpretar resultados)
-        session.getOutputInfo().forEach((name, info) ->
-                log.info("Output ONNX → {} : {}", name, info.getInfo())
-        );
     }
 
-    //Ejecuta la inferencia del modelo ONNX a partir de los features preparados.
-    public PredictionResponseDTO predecir(Map<String, OnnxTensor> features) {
-
-        // Ejecutar inferencia usando inputs por nombre
+    // Se crea método privado para la lógica de inferencia.
+    private PredictionResponseDTO runPrediction(Map<String, OnnxTensor> features) {
         try (OrtSession.Result result = session.run(features)) {
 
-            // Output probabilities → FLOAT [-1, 2]
-            float[][] probabilities =
-                    (float[][]) result.get("probabilities").get().getValue();
+            // 1. Obtener LABEL (Clase predicha) -> long[]
+            long[] label = (long[]) result.get("output_label").get().getValue();
+            long predicted = label[0];
 
-            // Output label → INT64 [-1]
-            long[] label =
-                    (long[]) result.get("label").get().getValue();
+            // 2. Obtener PROBABILIDAD (Corregido para desempaquetar OnnxMap)
+            OnnxSequence sequence = (OnnxSequence) result.get("output_probability").get();
+            List<? extends OnnxValue> mapList = sequence.getValue();
+            OnnxMap onnxMap = (OnnxMap) mapList.get(0);
 
-            // Probabilidades de la primera fila (batch = 1)
-            float probPuntual = probabilities[0][0];
-            float probRetraso = probabilities[0][1];
-            long predicted    = label[0];
+            @SuppressWarnings("unchecked")
+            Map<Long, Float> mapProb = (Map<Long, Float>) onnxMap.getValue();
 
-            // Interpretación de la clase predicha
-            String estado = (predicted == 1L)
-                    ? "Retrasado"
-                    : "Puntual";
+            float probRetraso = mapProb.getOrDefault(1L, 0.0f);
 
-            return new PredictionResponseDTO(
-                    estado,
-                    (double) probRetraso
-            );
+            // 3. Resultado
+            String estado = (predicted == 1L) ? "Retrasado" : "Puntual";
+
+            return new PredictionResponseDTO(estado, (double) probRetraso);
 
         } catch (OrtException e) {
-            // Error durante la inferencia del modelo
             log.error("Error ejecutando inferencia ONNX", e);
-            throw new ModelInferenceException("Fallo al ejecutar el modelo", e);
-
+            throw new ModelInferenceException("Fallo al ejecutar el modelo: " + e.getMessage(), e);
         } finally {
-            // Liberar memoria nativa de los tensores de entrada
-            features.values().forEach(tensor -> {
-                try {
-                    tensor.close();
-                } catch (Exception ignored) {
-                }
-            });
+            // Liberar memoria de los tensores de entrada para evitar fugas
+            if (features != null) {
+                features.values().forEach(t -> {
+                    try { t.close(); } catch (Exception e) {}
+                });
+            }
         }
+    }
+
+    // Método públicos originales de la interfaz
+    @Override
+    public PredictionResponseDTO predecir(Map<String, OnnxTensor> features) {
+        return runPrediction(features);
+    }
+
+    // Se agrega Método público con features climáticas
+    @Override
+    public PredictionWithFeaturesDTO predecirConFeatures(
+            Map<String, OnnxTensor> features,
+            WeatherFeaturesDTO weatherFeatures
+    ) {
+        PredictionResponseDTO baseResult = runPrediction(features);
+        return new PredictionWithFeaturesDTO(
+                baseResult.prevision(),
+                baseResult.probabilidad(),
+                weatherFeatures
+        );
     }
 }

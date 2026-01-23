@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flightontime.core.dto.WeatherFeaturesDTO;
 import com.flightontime.core.model.Airport;
 import com.flightontime.core.repository.AirportRepository;
+import com.flightontime.core.web.exception.GlobalExceptionHandler;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +26,8 @@ import java.util.List;
 public class WeatherService {
     private final RestTemplate restTemplate;
     private final AirportRepository airportRepository;
+    private static final Logger log =
+            LoggerFactory.getLogger(WeatherService.class);
 
     private final String USER_AGENT = "(FlightOnTimeApp, contacto@tuempresa.com)";
 
@@ -29,6 +35,8 @@ public class WeatherService {
             String codigoAeropuerto,
             LocalDateTime fechaVuelo
     ) {
+        log.info("Buscando aeropuerto con código: {}", codigoAeropuerto);
+
         // 1. Obtener coordenadas
         Airport airport = airportRepository.findAll().stream()
                 .filter(a -> a.getCodigo().equals(codigoAeropuerto))
@@ -39,6 +47,7 @@ public class WeatherService {
             System.err.println("Aeropuerto sin coordenadas: " + codigoAeropuerto);
             return new WeatherFeaturesDTO(0.0, 0.0, 0, 0, 0); // Valores default neutros
         }
+        log.info("Aeropuerto encontrado: {}", airport.getNombre());
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -79,7 +88,8 @@ public class WeatherService {
             // Parsear fecha del periodo
             String startTimeStr = period.path("startTime").asText();
             // Formato ISO: 2026-01-15T14:00:00-05:00. Tomamos la parte de la fecha.
-            LocalDate periodDate = LocalDateTime.parse(startTimeStr.substring(0, 19)).toLocalDate();
+            OffsetDateTime odt = OffsetDateTime.parse(startTimeStr);
+            LocalDate periodDate = odt.toLocalDate();
 
             // Solo nos importan los periodos del día del vuelo
             if (periodDate.equals(diaVuelo)) {
@@ -90,9 +100,12 @@ public class WeatherService {
 
                 // Dewpoint (Viene en objeto value/unitCode, suele ser C, convertir a F)
                 // Formula C a F: (C * 9/5) + 32
-                double dewC = period.path("dewpoint").path("value").asDouble();
-                double dewF = (dewC * 9 / 5) + 32;
-                dews.add(dewF);
+                JsonNode dewNode = period.path("dewpoint").path("value");
+                if (!dewNode.isNull()) {
+                    double dewC = dewNode.asDouble();
+                    double dewF = (dewC * 9 / 5) + 32;
+                    dews.add(dewF);
+                }
 
                 // Lluvia/Nieve (Miramos shortForecast o probability)
                 String shortForecast = period.path("shortForecast").asText().toLowerCase();
@@ -120,6 +133,10 @@ public class WeatherService {
         double maxDew = dews.stream().max(Double::compare).orElse(0.0);
         double minDew = dews.stream().min(Double::compare).orElse(0.0);
         double dewRange = maxDew - minDew;
+
+        log.info("📊 Features clima: temp_range={}, dewpoint={}, precip={}, snow={}, wind={}",
+                tempRange, dewRange, precip, snow, wind);
+
 
         return new WeatherFeaturesDTO(
                 tempRange,

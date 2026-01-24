@@ -1,10 +1,10 @@
 package com.flightontime.core.service;
 
-import ai.onnxruntime.OnnxTensor;
+import com.flightontime.core.dto.TransformacionResultDTO;
+import com.flightontime.core.dto.WeatherFeaturesDTO;
 import com.flightontime.core.model.Flight;
 
-import java.util.Map;
-
 public interface FeatureEngineeringService {
-    Map<String, OnnxTensor> transformar(Flight flight);
+    TransformacionResultDTO transformar(Flight flight);
+    WeatherFeaturesDTO getLastWeatherFeatures();
 }

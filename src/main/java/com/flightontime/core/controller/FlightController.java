@@ -1,14 +1,8 @@
 package com.flightontime.core.controller;
 
 import ai.onnxruntime.OnnxTensor;
-import com.flightontime.core.dto.FlightRequestDTO;
-import com.flightontime.core.dto.FlightResponseDTO;
-import com.flightontime.core.dto.PredictionResponseDTO;
-import com.flightontime.core.exception.FlightValidationException;
-import com.flightontime.core.exception.ModelInferenceException;
+import com.flightontime.core.dto.*;
 import com.flightontime.core.model.*;
-import com.flightontime.core.repository.AirlineRepository;
-import com.flightontime.core.repository.AirportRepository;
 import com.flightontime.core.repository.FlightRepository;
 import com.flightontime.core.repository.PredictionResultRepository;
 import com.flightontime.core.service.FeatureEngineeringService;
@@ -25,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+
 import java.util.List;
 import java.util.Map;
 
@@ -51,12 +45,13 @@ public class FlightController {
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@Valid @RequestBody FlightRequestDTO dto) {
 
-        // 1. VALIDACIÓN Y CONSTRUCCIÓN
-        // Si falla, FlightValidationException será capturada por GlobalExceptionHandler
-        Flight flight = flightValidator.validarYConstruirVuelo(dto);
+            // 1. VALIDACIÓN Y CONSTRUCCIÓN (Todo ocurre aquí dentro)
+            // Si algo falla, lanza FlightValidationException y salta al catch
+            Flight flight = flightValidator.validarYConstruirVuelo(dto);
 
-        // 2. Transformación de Features
-        Map<String, OnnxTensor> features = featureService.transformar(flight);
+            // 2. Transformación de Features
+            TransformacionResultDTO transformacion = featureService.transformar(flight);
+            Map<String, OnnxTensor> features = transformacion.features();
 
         // 3. Predicción
         PredictionResponseDTO resultado = predictionService.predecir(features);
@@ -77,6 +72,26 @@ public class FlightController {
         return ResponseEntity.ok(resultado);
     }
 
+    @PostMapping("predict/detailed")
+    public ResponseEntity<PredictionWithFeaturesDTO> predictDetailed(
+            @Valid @RequestBody FlightRequestDTO dto
+    ) {
+        Flight flight = flightValidator.validarYConstruirVuelo(dto);
+        TransformacionResultDTO transformacion = featureService.transformar(flight);
+        Map<String, OnnxTensor> features = transformacion.features();
+        WeatherFeaturesDTO weather = featureService.getLastWeatherFeatures();
+
+        PredictionResponseDTO base =
+                predictionService.predecir(transformacion.features());
+
+        return ResponseEntity.ok(
+                new PredictionWithFeaturesDTO(
+                        base.prevision(),
+                        base.probabilidad(),
+                        transformacion.weatherFeatures()
+                )
+        );
+    }
     @GetMapping("/flights")
     @Operation(summary = "Listar vuelos", description = "Obtiene todos los vuelos guardados con sus predicciones")
     @ApiResponses(value = {

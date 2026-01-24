@@ -83,6 +83,17 @@ public class FlightController {
 
         PredictionResponseDTO base =
                 predictionService.predecir(transformacion.features());
+        // LÓGICA DE GUARDADO AGREGADA
+        // Guardamos el vuelo
+        Flight savedFlight = flightRepository.save(flight);
+
+        // Guardamos el resultado de la predicción
+        PredictionResult prediction = new PredictionResult();
+        prediction.setFlight(savedFlight);
+        prediction.setProbabilidad(base.probabilidad());
+        prediction.setPrevision(EstadoVuelo.valueOf(base.prevision().toUpperCase()));
+
+        predictionRepository.save(prediction);
 
         return ResponseEntity.ok(
                 new PredictionWithFeaturesDTO(

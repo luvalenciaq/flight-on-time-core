@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -28,10 +28,9 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
-
 		<spring.datasource.url>jdbc:postgresql://localhost:5432/flight_on_time</spring.datasource.url>
-		<spring.datasource.username>${env.DB_USER}</spring.datasource.username>
-		<spring.datasource.password>${env.DB_PASSWORD}</spring.datasource.password>
+		<spring.datasource.username>postgres</spring.datasource.username>
+		<spring.datasource.password>Eli123</spring.datasource.password>
 	</properties>
 	<dependencies>
 		<dependency>

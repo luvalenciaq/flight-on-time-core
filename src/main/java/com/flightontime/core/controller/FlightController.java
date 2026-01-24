@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -90,5 +91,20 @@ public class FlightController {
                         transformacion.weatherFeatures()
                 )
         );
+    }
+    @GetMapping("/flights")
+    @Operation(summary = "Listar vuelos", description = "Obtiene todos los vuelos guardados con sus predicciones")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de vuelos obtenida exitosamente", content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlightResponseDTO.class))),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    public ResponseEntity<List<FlightResponseDTO>> getAllFlights() {
+        List<PredictionResult> predictions = predictionRepository.findAllWithFlightDetails();
+
+        List<FlightResponseDTO> response = predictions.stream()
+                .map(FlightResponseDTO::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 }
